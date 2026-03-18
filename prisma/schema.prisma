@@ -16,6 +16,7 @@ model SecondMeAgent {
   name          String    // Agent名称
   avatar        String?   // Agent头像
   points        Int       @default(100) // 初始积分100，对应你的游戏规则
+  smApiToken    String?   // SecondMe Third-Party Agent API token (sm-...)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   gameRecord    GameRecord?

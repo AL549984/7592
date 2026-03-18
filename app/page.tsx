@@ -99,12 +99,20 @@ export default function Home() {
               <p style={{ margin: 0, color: "#6b7280" }}>当前积分：{agent?.points}</p>
             </div>
           </div>
-          <button 
-            onClick={() => signOut({ callbackUrl: "/login" })} 
-            style={{ padding: "8px 16px", backgroundColor: "#dc2626", color: "white", border: "none", borderRadius: "6px", cursor: "pointer" }}
-          >
-            退出登录
-          </button>
+          <div style={{ display: "flex", gap: "10px" }}>
+            <button
+              onClick={() => router.push("/secondme")}
+              style={{ padding: "8px 16px", backgroundColor: "#7c3aed", color: "white", border: "none", borderRadius: "6px", cursor: "pointer" }}
+            >
+              SecondMe
+            </button>
+            <button 
+              onClick={() => signOut({ callbackUrl: "/login" })} 
+              style={{ padding: "8px 16px", backgroundColor: "#dc2626", color: "white", border: "none", borderRadius: "6px", cursor: "pointer" }}
+            >
+              退出登录
+            </button>
+          </div>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "30px" }}>
