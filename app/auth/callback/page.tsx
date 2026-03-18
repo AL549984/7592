@@ -1,17 +1,13 @@
 "use client";
-import { useEffect, Suspense, useRef } from "react";
+import { useEffect, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 function CallbackHandler() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const hasProcessed = useRef(false);
 
   useEffect(() => {
-    // 防止 React StrictMode 开发模式双重调用消耗同一个 OAuth code
-    if (hasProcessed.current) return;
-
     if (!searchParams) {
       router.push("/login?error=no_params");
       return;
@@ -30,10 +26,14 @@ function CallbackHandler() {
       return;
     }
 
-    hasProcessed.current = true;
+    // 用 code 本身作为 key 防止 React StrictMode 重挂时二次消费（useRef 在重挂时会重置，sessionStorage 不会）
+    const sessionKey = `oauth_code_used_${code}`;
+    if (sessionStorage.getItem(sessionKey)) return;
+    sessionStorage.setItem(sessionKey, "1");
 
-    // 用授权码完成 NextAuth 登录（redirect:false 以便客户端捕获错误）
+    // 用授权码完成 NextAuth 登录（redirect:false 以便客户端捕获错误并手动导航）
     signIn("secondme", { code, redirect: false }).then((result) => {
+      sessionStorage.removeItem(sessionKey);
       if (result?.ok && !result.error) {
         router.push("/");
       } else {
