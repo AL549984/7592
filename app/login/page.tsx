@@ -18,7 +18,8 @@ export default function LoginPage() {
   const handleLogin = () => {
     const authUrl = process.env.NEXT_PUBLIC_SECONDME_AUTH_URL;
     const clientId = process.env.NEXT_PUBLIC_SECONDME_CLIENT_ID;
-    const redirectUri = `${process.env.NEXT_PUBLIC_URL}/auth/callback`;
+    // 使用 window.location.origin 确保在浏览器端能正确获取当前域名
+    const redirectUri = `${window.location.origin}/auth/callback`;
 
     if (!authUrl || !clientId) {
       alert("Second Me 配置缺失，请检查环境变量 NEXT_PUBLIC_SECONDME_AUTH_URL 和 NEXT_PUBLIC_SECONDME_CLIENT_ID");
