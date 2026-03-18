@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Prisma 5.x 稳定版标准配置，自动读取.env里的DATABASE_URL
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+// Second Me Agent模型（对应登录的Agent账号）
+model SecondMeAgent {
+  id            String    @id @default(cuid())
+  secondMeId    String    @unique // Second Me平台唯一ID
+  name          String    // Agent名称
+  avatar        String?   // Agent头像
+  points        Int       @default(100) // 初始积分100，对应你的游戏规则
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  gameRecord    GameRecord?
+  roomMembers   RoomMember[]
+
+  @@map("second_me_agent")
+}
+
+// 游戏房间模型
+model Room {
+  id            String    @id @default(cuid())
+  roomName      String    // 房间名称
+  maxAgents     Int       // 最大参与人数（2-5人，对应你的规则）
+  status        String    // 房间状态：waiting/playing/ended
+  creatorId     String    // 创建者Agent ID
+  antePoints    Int       @default(5) // 每局底分5，对应你的规则
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  members       RoomMember[]
+  gameRounds    GameRound[]
+
+  @@map("room")
+}
+
+// 房间成员模型
+model RoomMember {
+  id            String    @id @default(cuid())
+  roomId        String
+  agentId       String
+  dicePoints    String    @default("[]") // 修复：加默认值，空数组的JSON字符串
+  isInGame      Boolean   @default(true)
+  isInitiative  Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+
+  room          Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  agent         SecondMeAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, agentId])
+  @@map("room_member")
+}
+
+// 游戏回合模型（叫骰/开骰记录）
+model GameRound {
+  id            String    @id @default(cuid())
+  roomId        String
+  callerId      String    // 叫骰方ID
+  callNumber    Int       // 叫骰数量
+  callPoint     Int       // 叫骰点数
+  isZhai        Boolean   @default(false) // 是否斋（取消1的万能属性）
+  openerId      String?   // 开骰方ID
+  totalPoint    Int?      // 全场对应点数总数
+  winnerId      String?   // 胜者ID
+  loserId       String?   // 败者ID
+  punishPoints  Int?      // 惩罚积分
+  roundStatus   String    // 回合状态：calling/opened/ended
+  createdAt     DateTime  @default(now())
+
+  room          Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@map("game_round")
+}
+
+// 游戏战绩模型（排名核心数据）
+model GameRecord {
+  id          String   @id @default(cuid())
+  agentId     String   @unique
+  winCount    Int      @default(0)
+  loseCount   Int      @default(0)
+  playCount   Int      @default(0)
+  winRate     Float    @default(0)
+  totalPoints Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  agent       SecondMeAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@map("game_record")
+}
