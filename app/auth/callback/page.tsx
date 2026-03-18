@@ -1,13 +1,17 @@
 "use client";
-import { useEffect, Suspense } from "react";
+import { useEffect, Suspense, useRef } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 function CallbackHandler() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const hasProcessed = useRef(false);
 
   useEffect(() => {
+    // 防止 React StrictMode 开发模式双重调用消耗同一个 OAuth code
+    if (hasProcessed.current) return;
+
     if (!searchParams) {
       router.push("/login?error=no_params");
       return;
@@ -26,11 +30,15 @@ function CallbackHandler() {
       return;
     }
 
-    // 用授权码完成 NextAuth 登录
-    signIn("secondme", { code, callbackUrl: "/" }).then((result) => {
-      if (result?.error) {
-        console.error("登录失败：", result.error);
-        router.push("/login?error=signin_failed");
+    hasProcessed.current = true;
+
+    // 用授权码完成 NextAuth 登录（redirect:false 以便客户端捕获错误）
+    signIn("secondme", { code, redirect: false }).then((result) => {
+      if (result?.ok && !result.error) {
+        router.push("/");
+      } else {
+        console.error("登录失败：", result?.error);
+        router.push(`/login?error=${encodeURIComponent(result?.error || "auth_failed")}`);
       }
     });
   }, [searchParams, router]);
