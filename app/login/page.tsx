@@ -17,15 +17,17 @@ export default function LoginPage() {
   // 跳转到 Second Me 授权页（标准 OAuth 授权码流程）
   const handleLogin = () => {
     const authUrl = process.env.NEXT_PUBLIC_SECONDME_AUTH_URL;
+    const clientId = process.env.NEXT_PUBLIC_SECONDME_CLIENT_ID;
     const redirectUri = process.env.NEXT_PUBLIC_SECONDME_REDIRECT_URI || `${window.location.origin}/auth/callback`;
 
-    if (!authUrl) {
-      alert("Second Me 配置缺失，请检查环境变量 NEXT_PUBLIC_SECONDME_AUTH_URL");
+    if (!authUrl || !clientId) {
+      alert("Second Me 配置缺失，请检查环境变量 NEXT_PUBLIC_SECONDME_AUTH_URL / NEXT_PUBLIC_SECONDME_CLIENT_ID");
       return;
     }
 
-    // 使用 third-party-agent 授权页，传 redirect 参数后会自动带 code 回调
+    // 传入 client_id，让 SecondMe 识别为第三方应用 OAuth 请求并回调到 redirect 地址
     const params = new URLSearchParams({
+      client_id: clientId,
       redirect: redirectUri,
     });
 
