@@ -18,8 +18,8 @@ export default function LoginPage() {
   const handleLogin = () => {
     const authUrl = process.env.NEXT_PUBLIC_SECONDME_AUTH_URL;
     const clientId = process.env.NEXT_PUBLIC_SECONDME_CLIENT_ID;
-    // 使用 window.location.origin 确保在浏览器端能正确获取当前域名
-    const redirectUri = `${window.location.origin}/auth/callback`;
+    // 使用显式配置的 redirect_uri，必须与 SecondMe 开发者控制台注册的完全一致
+    const redirectUri = process.env.NEXT_PUBLIC_SECONDME_REDIRECT_URI || `${window.location.origin}/auth/callback`;
 
     if (!authUrl || !clientId) {
       alert("Second Me 配置缺失，请检查环境变量 NEXT_PUBLIC_SECONDME_AUTH_URL 和 NEXT_PUBLIC_SECONDME_CLIENT_ID");
@@ -30,7 +30,7 @@ export default function LoginPage() {
       client_id: clientId,
       redirect_uri: redirectUri,
       response_type: "code",
-      scope: "openid profile",
+      scope: "user.info",
     });
 
     window.location.href = `${authUrl}?${params.toString()}`;

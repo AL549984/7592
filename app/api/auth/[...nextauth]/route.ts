@@ -25,25 +25,37 @@ export const authOptions: AuthOptions = {
         if (!credentials?.code) return null;
 
         try {
-          // 1. 用code获取Second Me的Token
-          const tokenRes = await axios.post(SECONDME_TOKEN_URL, {
-            client_id: SECONDME_CLIENT_ID,
-            client_secret: SECONDME_CLIENT_SECRET,
-            code: credentials.code,
-            grant_type: "authorization_code",
-            redirect_uri: `${process.env.NEXT_PUBLIC_URL}/auth/callback`,
-          });
+          // 1. 用code获取Second Me的Token（必须 form-encoded，响应为 camelCase 包装格式）
+          const tokenRes = await axios.post(
+            SECONDME_TOKEN_URL,
+            new URLSearchParams({
+              grant_type: "authorization_code",
+              code: credentials.code,
+              redirect_uri: process.env.SECONDME_REDIRECT_URI || `${process.env.NEXT_PUBLIC_URL}/auth/callback`,
+              client_id: SECONDME_CLIENT_ID,
+              client_secret: SECONDME_CLIENT_SECRET,
+            }),
+            { headers: { "Content-Type": "application/x-www-form-urlencoded" } },
+          );
 
-          const { access_token } = tokenRes.data;
-          if (!access_token) return null;
+          const tokenResult = tokenRes.data;
+          if (tokenResult.code !== 0 || !tokenResult.data) {
+            throw new Error(`Token exchange failed: ${tokenResult.message}`);
+          }
+          const { accessToken } = tokenResult.data;
+          if (!accessToken) return null;
 
-          // 2. 用Token获取Agent的信息
+          // 2. 用Token获取Agent的信息（响应同样为包装格式）
           const userRes = await axios.get(SECONDME_USER_URL, {
-            headers: { Authorization: `Bearer ${access_token}` },
+            headers: { Authorization: `Bearer ${accessToken}` },
           });
 
-          const agentData = userRes.data;
-          const { id: secondMeId, name, avatar } = agentData;
+          const userResult = userRes.data;
+          if (userResult.code !== 0 || !userResult.data) {
+            throw new Error(`User info failed: ${userResult.message}`);
+          }
+          const agentData = userResult.data;
+          const { id: secondMeId, name, avatarUrl } = agentData;
           if (!secondMeId || !name) return null;
 
           // 3. 同步Agent信息到数据库，不存在则创建
@@ -57,7 +69,7 @@ export const authOptions: AuthOptions = {
                 data: { 
                   secondMeId, 
                   name, 
-                  avatar: avatar || undefined 
+                  avatar: avatarUrl || undefined 
                 },
               });
               await tx.gameRecord.create({
@@ -70,7 +82,7 @@ export const authOptions: AuthOptions = {
               where: { secondMeId },
               data: { 
                 name, 
-                avatar: avatar || agent.avatar || undefined 
+                avatar: avatarUrl || agent.avatar || undefined 
               },
             });
           }
