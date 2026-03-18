@@ -1,5 +1,5 @@
 "use client";
-import { signIn, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
@@ -14,11 +14,25 @@ export default function LoginPage() {
     }
   }, [status, router]);
 
-  // 跳转到Second Me授权登录
+  // 跳转到 Second Me 授权页（标准 OAuth 授权码流程）
   const handleLogin = () => {
-    signIn("secondme", {
-      callbackUrl: process.env.NEXT_PUBLIC_URL || "/",
+    const authUrl = process.env.NEXT_PUBLIC_SECONDME_AUTH_URL;
+    const clientId = process.env.NEXT_PUBLIC_SECONDME_CLIENT_ID;
+    const redirectUri = `${process.env.NEXT_PUBLIC_URL}/auth/callback`;
+
+    if (!authUrl || !clientId) {
+      alert("Second Me 配置缺失，请检查环境变量 NEXT_PUBLIC_SECONDME_AUTH_URL 和 NEXT_PUBLIC_SECONDME_CLIENT_ID");
+      return;
+    }
+
+    const params = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      response_type: "code",
+      scope: "openid profile",
     });
+
+    window.location.href = `${authUrl}?${params.toString()}`;
   };
 
   if (status === "loading") {

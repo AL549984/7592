@@ -31,7 +31,7 @@ export const authOptions: AuthOptions = {
             client_secret: SECONDME_CLIENT_SECRET,
             code: credentials.code,
             grant_type: "authorization_code",
-            redirect_uri: `${process.env.NEXT_PUBLIC_URL}/api/auth/callback/secondme`,
+            redirect_uri: `${process.env.NEXT_PUBLIC_URL}/auth/callback`,
           });
 
           const { access_token } = tokenRes.data;
