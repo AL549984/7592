@@ -64,8 +64,9 @@ export default function RoomPage() {
     socket.on("room_updated", (newRoom) => {
       if (newRoom.id === roomId) setRoom(newRoom);
     });
-    socket.on("dice_rolled", (data) => {
-      if (data.agentId === agent.id) setMyDice(data.dicePoints);
+    // dice_rolled 仅用于通知其他玩家有人已摇骰，骰子值通过 roll_dice 回调获取
+    socket.on("dice_rolled", (_data) => {
+      // 不在此处更新骰子，避免用 undefined 覆盖已通过回调正确设置的 myDice
     });
     socket.on("dice_called", (data) => {
       if (data.roomId === roomId) setCurrentRound(data.round);

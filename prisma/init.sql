@@ -6,9 +6,12 @@ CREATE TABLE IF NOT EXISTS "second_me_agent" (
     "name"        TEXT        NOT NULL,
     "avatar"      TEXT,
     "points"      INTEGER     NOT NULL DEFAULT 100,
+    "smApiToken"  TEXT,
     "createdAt"   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     "updatedAt"   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+-- 补列（幂等，已有列时不报错）
+ALTER TABLE "second_me_agent" ADD COLUMN IF NOT EXISTS "smApiToken" TEXT;
 
 CREATE TABLE IF NOT EXISTS "room" (
     "id"         TEXT        NOT NULL PRIMARY KEY,

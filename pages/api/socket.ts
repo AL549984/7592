@@ -197,6 +197,8 @@ const ioHandler = (req: NextApiRequest, res: NextApiResponse) => {
 
           for (const member of roomMembers) {
             const diceList = JSON.parse(member.dicePoints || '[]') as number[]
+            // 空骰子跳过特殊规则检测（避免 [].every() 返回 vacuous true 误加分）
+            if (diceList.length < 5) continue
             const isBaozi = diceList.every((p: number) => p === diceList[0])
             if (isBaozi) {
               totalPoint += isZhai ? 2 : 1
