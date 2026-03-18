@@ -8,8 +8,6 @@ import axios from "axios";
 import { prisma } from "@/lib/prisma";
 
 // 读取环境变量
-const SECONDME_CLIENT_ID = process.env.SECONDME_CLIENT_ID!;
-const SECONDME_CLIENT_SECRET = process.env.SECONDME_CLIENT_SECRET!;
 const SECONDME_TOKEN_URL = process.env.SECONDME_TOKEN_URL!;
 const SECONDME_USER_URL = process.env.SECONDME_USER_URL!;
 
@@ -25,27 +23,20 @@ export const authOptions: AuthOptions = {
         if (!credentials?.code) return null;
 
         try {
-          // 1. 用code获取Second Me的Token（必须 form-encoded，响应为 camelCase 包装格式）
+          // 1. 用 smc-... 授权码换取 sm-... token（JSON 格式，参见 SKILL.md）
           const tokenRes = await axios.post(
             SECONDME_TOKEN_URL,
-            new URLSearchParams({
-              grant_type: "authorization_code",
-              code: credentials.code,
-              redirect_uri: process.env.SECONDME_REDIRECT_URI || `${process.env.NEXT_PUBLIC_URL}/auth/callback`,
-              client_id: SECONDME_CLIENT_ID,
-              client_secret: SECONDME_CLIENT_SECRET,
-            }),
-            { headers: { "Content-Type": "application/x-www-form-urlencoded" } },
+            { code: credentials.code },
+            { headers: { "Content-Type": "application/json" } },
           );
 
           const tokenResult = tokenRes.data;
-          if (tokenResult.code !== 0 || !tokenResult.data) {
+          if (tokenResult.code !== 0 || !tokenResult.data?.accessToken) {
             throw new Error(`Token exchange failed: ${tokenResult.message}`);
           }
           const { accessToken } = tokenResult.data;
-          if (!accessToken) return null;
 
-          // 2. 用Token获取Agent的信息（响应同样为包装格式）
+          // 2. 用 Token 获取 Agent 的个人资料
           const userRes = await axios.get(SECONDME_USER_URL, {
             headers: { Authorization: `Bearer ${accessToken}` },
           });
@@ -55,7 +46,10 @@ export const authOptions: AuthOptions = {
             throw new Error(`User info failed: ${userResult.message}`);
           }
           const agentData = userResult.data;
-          const { id: secondMeId, name, avatarUrl } = agentData;
+          // 优先使用 id 字段，其次使用 originRoute 作为唯一标识
+          const secondMeId = agentData.id ?? agentData.originRoute;
+          const name = agentData.name;
+          const avatarUrl = agentData.avatar ?? agentData.avatarUrl;
           if (!secondMeId || !name) return null;
 
           // 3. 同步Agent信息到数据库，不存在则创建
@@ -69,7 +63,8 @@ export const authOptions: AuthOptions = {
                 data: { 
                   secondMeId, 
                   name, 
-                  avatar: avatarUrl || undefined 
+                  avatar: avatarUrl || undefined,
+                  smApiToken: accessToken,
                 },
               });
               await tx.gameRecord.create({
@@ -82,7 +77,8 @@ export const authOptions: AuthOptions = {
               where: { secondMeId },
               data: { 
                 name, 
-                avatar: avatarUrl || agent.avatar || undefined 
+                avatar: avatarUrl || agent.avatar || undefined,
+                smApiToken: accessToken,
               },
             });
           }
